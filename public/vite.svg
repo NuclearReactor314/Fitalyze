@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 118 118" fill="none" width="118" height="118">
+  <!-- 底层圆圈 -->
+  <circle cx="59" cy="59" r="58" fill="#646CFF" stroke="black" stroke-width="2"/>
+  
+  <!-- 引入外部 logo.svg -->
+  <image x="30" y="30" width="58" height="58" href="/file.svg" />
+
+  <!-- 中间文字 -->
+  <text x="50%" y="90%" text-anchor="middle" fill="white" font-size="14px" font-family="Arial" dy=".3em">
+    Fitalyze
+  </text>
+</svg>
