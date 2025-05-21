@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+const client_id = import.meta.env.VITE_CLIENT_ID;
 
 // 这里写入你的 Strava app 信息：
 const client_id = "129566";
