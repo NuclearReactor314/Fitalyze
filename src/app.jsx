@@ -15,13 +15,18 @@ import "./index.css";
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
 
 export default function App() {
-  const [activities, setActivities] = useState([]);
-  const client_id = import.meta.env.VITE_CLIENT_ID;
-  const client_secret = import.meta.env.VITE_CLIENT_SECRET;
-  const redirect_uri = window.location.origin;
+  // 直接写死在代码里的配置（开发测试用）
+  const client_id = "129566";
+  const client_secret = "24202e2054ac02c10eb6e6730bb050813338b3d1";
+  const redirect_uri = "http://localhost:5173";
 
+  const [activities, setActivities] = useState([]);
+
+  // 处理 Strava OAuth 回调，拿 code 换 token
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get("code");
+
+    // 如果有 code 且本地没 token，调用换 token接口
     if (code && !localStorage.getItem("access_token")) {
       axios
         .post("https://www.strava.com/oauth/token", {
@@ -29,14 +34,22 @@ export default function App() {
           client_secret,
           code,
           grant_type: "authorization_code",
+          redirect_uri, // 记得带上这个
         })
         .then((res) => {
           localStorage.setItem("access_token", res.data.access_token);
-          window.location.href = redirect_uri;
+          // 跳转去除 url 上的 code，防止重复请求
+          window.history.replaceState({}, "", redirect_uri);
+          window.location.reload();
+        })
+        .catch((err) => {
+          console.error("Token exchange failed:", err);
+          alert("Strava 授权失败，请检查客户端配置。");
         });
     }
   }, []);
 
+  // 有 token 时拉取活动数据
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (token) {
@@ -44,9 +57,26 @@ export default function App() {
         .get("https://www.strava.com/api/v3/athlete/activities", {
           headers: { Authorization: `Bearer ${token}` },
         })
-        .then((res) => setActivities(res.data));
+        .then((res) => setActivities(res.data))
+        .catch((err) => {
+          console.error("拉取活动失败:", err);
+          alert("拉取 Strava 活动失败，可能是 Token 失效。请重新连接。");
+          localStorage.removeItem("access_token");
+        });
     }
   }, []);
+
+  // 点击登录按钮，跳转到 Strava 授权页面
+  const handleConnect = () => {
+    const authUrl =
+      `https://www.strava.com/oauth/authorize?` +
+      `client_id=${encodeURIComponent(client_id)}` +
+      `&response_type=code` +
+      `&redirect_uri=${encodeURIComponent(redirect_uri)}` +
+      `&approval_prompt=force` +
+      `&scope=activity:read_all`;
+    window.location.href = authUrl;
+  };
 
   const chartData = {
     labels: activities.map((a) => new Date(a.start_date).toLocaleDateString()),
@@ -65,11 +95,10 @@ export default function App() {
   return (
     <main className="min-h-screen p-4 bg-gray-50 text-gray-800">
       <h1 className="text-3xl font-bold mb-4">Fitalyze: Strava Activity Visualizer</h1>
+
       {!localStorage.getItem("access_token") ? (
         <button
-          onClick={() => {
-            window.location.href = `https://www.strava.com/oauth/authorize?client_id=${client_id}&response_type=code&redirect_uri=${redirect_uri}&approval_prompt=force&scope=activity:read_all`;
-          }}
+          onClick={handleConnect}
           className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
         >
           Connect with Strava
